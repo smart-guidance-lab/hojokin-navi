@@ -1,9 +1,7 @@
-name: Daily Subsidy Update
+name: Daily Subsidy Scraper
 
 on:
-  schedule:
-    - cron: '0 0 * * *' # 日本時間の毎朝9:00に実行
-  workflow_dispatch: # 手動実行ボタンを有効化
+  workflow_dispatch: # 手動実行ボタンを表示
 
 jobs:
   build:
@@ -18,18 +16,11 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install requests
 
-      - name: Run script
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Run scraper
         run: python main.py
-# workflows内の「run: python main.py」がある場所に、これを追加してください
-      run: python main.py
-      env:
-        AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
-        AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-        AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
