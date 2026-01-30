@@ -1,28 +1,34 @@
-name: Daily Subsidy Portal Update
-
-on:
-  schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
-
 jobs:
-  build:
+  update-subsidies:
     runs-on: ubuntu-latest
+    # 【最優先事項】OIDCトークン発行のために必須の権限
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4  # ここを [] なしの形式に修正
+      # 1. Google Cloud 認証ステップ
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
         with:
-          python-version: '3.9'
+          # 先ほどコピーした「projects/数値/...」の文字列
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          # サービスアカウントのメールアドレス
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
 
+      # 2. Python環境のセットアップ
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 3. 依存ライブラリのインストール
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests google-api-python-client oauth2client
 
-      - name: Run main.py
-        env:
-          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+      # 4. メインスクリプトの実行（ここでIndexing APIを叩く）
+      - name: Run main script
         run: python main.py
