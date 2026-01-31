@@ -1,39 +1,31 @@
-name: Build and Deploy Subsidy Site
-
+name: deploy
 on:
+  push:
+    branches: [main]
   schedule:
-    - cron: '0 0 * * *' # 日本時間 午前9時
-  workflow_dispatch: # 手動実行用
+    - cron: '0 0 * * *' # 毎日AM9時(JST)
 
-permissions:
-  contents: write
+# 渋滞を物理的に解消する設定
+concurrency:
+  group: "pages"
+  cancel-in-progress: true 
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 
-
+      - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-
+          python-version: '3.10'
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 openai
-
-      - name: Run script to generate HTML
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: pip install requests beautifulsoup4
+      - name: Run script
         run: python main.py
-
-      - name: Commit and Push all changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          # index.html, sitemap.xml, および articles フォルダ内の変更をすべて追加
-          git add index.html sitemap.xml articles/
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update subsidy data and sitemap" && git push origin main)
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
