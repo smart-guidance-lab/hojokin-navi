@@ -2,25 +2,46 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from openai import OpenAI
 
-# [物理単位の厳守]: 日本時間を基準とした更新日の取得
+# 物理定数・単位の厳守: 日本標準時
 now = datetime.now().strftime('%Y年%m月%d日 %H:%M')
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+def ai_summarize(title):
+    """
+    OpenAI APIを用いて、補助金タイトルから『メリット・対象・緊急性』を推論要約する。
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "補助金情報のタイトルを元に、経営者が知るべき要点を3箇条（各20文字以内）で出力せよ。形式：・項目名：内容"},
+                {"role": "user", "content": title}
+            ],
+            max_tokens=150
+        )
+        return response.choices[0].message.content.replace('\n', '<br>')
+    except Exception as e:
+        print(f"AI Error: {e}")
+        return "・詳細は公式URLを確認してください。"
 
 def generate_html(subsidies):
-    # フォームURLの指定（必ず https://docs.google.com/forms/d/e/.../viewform の形式にすること）
-    google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSddIW5zNLUuZLyQWIESX0EOZWZUM3dGM6pdW9Luw20YTiEuwg/viewform?usp=publish-editor"
-
+    google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSddIW5zNLUuZLyQWIESX0EOZWZUM3dGM6pdW9Luw20YTiEuwg/viewform"
+    
     list_items = ""
     for item in subsidies:
+        summary = ai_summarize(item['title'])
         list_items += f"""
-        <article style="border: 1px solid #eee; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            <h2 style="color: #2c3e50; margin-top: 0; font-size: 1.2rem;">{item['title']}</h2>
-            <p style="font-size: 0.9rem; color: #666;">
-                <strong>地域:</strong> 全国 | <strong>カテゴリー:</strong> 経営支援
-            </p>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <a href="{item['link']}" target="_blank" style="flex: 1; text-align: center; background: #f8f9fa; color: #333; padding: 10px; text-decoration: none; border-radius: 5px; border: 1px solid #ddd; font-weight: bold; font-size: 0.9rem;">公式詳細を見る</a>
-                <a href="{google_form_url}" target="_blank" style="flex: 1; text-align: center; background: #28a745; color: white; padding: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">専門家に無料相談</a>
+        <article style="border: 1px solid #eee; padding: 25px; margin-bottom: 25px; border-radius: 15px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h2 style="color: #1a73e8; margin-top: 0; font-size: 1.3rem;">{item['title']}</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 0.95rem; line-height: 1.8;">
+                <strong style="color: #d93025;">▼ 3秒でわかる要点</strong><br>
+                {summary}
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="{item['link']}" target="_blank" style="flex: 1; text-align: center; border: 1px solid #dadce0; padding: 12px; text-decoration: none; border-radius: 8px; color: #3c4043; font-weight: bold;">一次資料</a>
+                <a href="{google_form_url}" target="_blank" style="flex: 1; text-align: center; background: #1a73e8; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold;">プロに無料相談</a>
             </div>
         </article>
         """
@@ -32,12 +53,12 @@ def generate_html(subsidies):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="google-site-verification" content="qDKunZB9hZN753KuLftIbJUXeWBi3bA-HfSS-gej1KA" />
-        <title>【最新】自治体補助金自動集約ナビ 2026</title>
+        <title>AI補助金ナビ 2026</title>
     </head>
-    <body style="max-width: 800px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; line-height: 1.6; color: #333;">
-        <header style="border-bottom: 3px solid #007bff; margin-bottom: 30px; padding-bottom: 10px;">
-            <h1 style="margin: 0; font-size: 1.8rem;">自治体補助金自動集約ナビ</h1>
-            <p style="color: #888; font-size: 0.9rem;">最終自動更新: {now}</p>
+    <body style="max-width: 600px; margin: 0 auto; background: #f1f3f4; padding: 20px; font-family: sans-serif;">
+        <header style="text-align: center; padding: 20px 0;">
+            <h1 style="color: #202124; font-size: 1.6rem;">AI補助金要約ナビ</h1>
+            <p style="color: #5f6368; font-size: 0.8rem;">最終更新: {now}</p>
         </header>
         <main>{list_items}</main>
     </body>
@@ -47,19 +68,10 @@ def generate_html(subsidies):
         f.write(html_content)
 
 def fetch_data():
-    url = "https://j-net21.smrj.go.jp/snavi/articles"
-    res = requests.get(url, timeout=30)
+    res = requests.get("https://j-net21.smrj.go.jp/snavi/articles", timeout=30)
     soup = BeautifulSoup(res.text, 'html.parser')
-    articles = soup.select('h3')[:10]
-    data = []
-    for art in articles:
-        link_tag = art.find('a')
-        data.append({{"title": art.get_text(strip=True), "link": "https://j-net21.smrj.go.jp" + link_tag['href'] if link_tag else url}})
-    return data
+    articles = soup.select('h3')[:5] # AIコスト節約のため、まずは5件に限定
+    return [{"title": a.get_text(strip=True), "link": "https://j-net21.smrj.go.jp" + a.find('a')['href']} for a in articles if a.find('a')]
 
 if __name__ == "__main__":
-    try:
-        generate_html(fetch_data())
-        print("Success: index.html updated.")
-    except Exception as e:
-        print(f"Error: {{e}}")
+    generate_html(fetch_data())
