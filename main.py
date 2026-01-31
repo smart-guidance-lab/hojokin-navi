@@ -90,7 +90,6 @@ def fetch_data():
     res.encoding = res.apparent_encoding
     soup = BeautifulSoup(res.text, 'html.parser')
     
-    # セレクタの堅牢化：h3内のaタグを確実に取得
     articles = soup.find_all('h3')[:8]
     data = []
     for art in articles:
@@ -104,4 +103,11 @@ def fetch_data():
 
 if __name__ == "__main__":
     try:
-        data = fetch_data()
+        subsidies = fetch_data()
+        if subsidies:
+            generate_html_and_sitemap(subsidies)
+            print(f"Success: {len(subsidies)} articles updated.")
+        else:
+            print("Warning: No articles found.")
+    except Exception as e:
+        print(f"Critical Error: {e}")
