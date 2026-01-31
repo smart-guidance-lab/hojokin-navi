@@ -1,7 +1,6 @@
 import os, requests, re
 from bs4 import BeautifulSoup
 
-# 設定の厳格化：AI依存を完全に断ち切り、物理的なデータ取得のみを行う
 SOURCE_NAME = "J-Net21（独立行政法人 中小企業基盤整備機構）"
 SOURCE_URL = "https://j-net21.smrj.go.jp/snavi/articles"
 
@@ -29,15 +28,15 @@ def fetch_data():
 
 def generate_html(subsidies):
     """
-    色彩（青）と文言の削除を物理的に適用したHTMLを生成。
+    冗長表現を廃し、青ボタン(#2B6CB0)をインラインCSSで物理的に固定したHTML
     """
     list_items = ""
     for item in subsidies:
-        # 青色(#2B6CB0)を最優先で適用し、冗長な文言を排除したボタン
+        # 強制的に青色を適用するための !important 記述
         list_items += f"""
-        <div style="padding:24px 0; border-bottom:1px solid #E2E8F0;">
+        <div style="padding:25px 0; border-bottom:1px solid #E2E8F0;">
             <h2 style="font-size:1.1rem; line-height:1.6; margin:0 0 16px 0; color:#1A202C; font-weight:700;">{item['title']}</h2>
-            <a href="{item['link']}" target="_blank" style="background-color:#2B6CB0 !important; color:#FFFFFF !important; padding:12px 24px; text-decoration:none; border-radius:6px; font-size:0.9rem; font-weight:bold; display:inline-block;">公募要領を確認する</a>
+            <a href="{item['link']}" target="_blank" style="background-color:#2B6CB0 !important; color:#FFFFFF !important; padding:12px 24px; text-decoration:none; border-radius:8px; font-size:0.9rem; font-weight:bold; display:inline-block;">公募要領を確認する</a>
         </div>"""
     
     html_content = f"""<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>補助金速報</title></head>
@@ -49,10 +48,6 @@ def generate_html(subsidies):
     <main style="background-color:#FFFFFF; padding:10px 30px; border-radius:12px; border:1px solid #E2E8F0; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
         {list_items}
     </main>
-    <footer style="margin-top:60px; text-align:center; font-size:0.8rem; color:#A0AEC0;">
-        <p>出典：{SOURCE_NAME}</p>
-        <p style="margin-top:8px;">24時間ごとに自動更新中</p>
-    </footer>
 </body></html>"""
     
     with open("index.html", "w", encoding="utf-8") as f:
