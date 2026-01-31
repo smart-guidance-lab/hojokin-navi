@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 全履歴を取得してPushの衝突を回避
+          fetch-depth: 0 
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -30,10 +30,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python main.py
 
-      - name: Commit and Push index.html
+      - name: Commit and Push all changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add index.html
-          # 変更がある場合のみコミットし、強制的にmainブランチへpushする
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update index.html with latest data" && git push origin main)
+          # index.html, sitemap.xml, および articles フォルダ内の変更をすべて追加
+          git add index.html sitemap.xml articles/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update subsidy data and sitemap" && git push origin main)
