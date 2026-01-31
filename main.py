@@ -8,41 +8,46 @@ from openai import OpenAI
 now = datetime.now().strftime('%Y年%m月%d日 %H:%M')
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def ai_summarize(title):
+def ai_analyze(title):
     """
-    OpenAI APIを用いて、経営者が反応するキーワード（返済不要等）を抽出要約する。
+    OpenAI APIを用いて、要約とおすすめ度（5段階評価）を生成する。
     """
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "補助金タイトルから、経営者が知るべき要点を3箇条で出力せよ。特に『返済不要』『受給額』『対象』に触れ、15文字以内で簡潔に。形式：・項目名：内容"},
+                {"role": "system", "content": "補助金タイトルを分析し、経営者向けに【3箇条の要約】と【おすすめ度(★1-5)】を出力せよ。特に『返済不要』『受給額』に触れること。出力形式：要約：(要約テキスト) / スコア：(星の数)"},
                 {"role": "user", "content": title}
             ],
-            max_tokens=200
+            max_tokens=250
         )
-        return response.choices[0].message.content.replace('\n', '<br>')
+        res_text = response.choices[0].message.content
+        summary = res_text.split("スコア：")[0].replace("要約：", "").strip().replace('\n', '<br>')
+        score = res_text.split("スコア：")[1].strip() if "スコア：" in res_text else "★★★"
+        return summary, score
     except Exception as e:
         print(f"AI Error: {e}")
-        return "・内容：詳細は公式URLを確認してください。"
+        return "・詳細は公式資料を確認してください。", "★★★"
 
 def generate_html_and_sitemap(subsidies):
-    # 確定したGoogleフォームURL
     google_form_url = "https://docs.google.com/forms/d/e/1FAIpQLSddIW5zNLUuZLyQWIESX0EOZWZUM3dGM6pdW9Luw20YTiEuwg/viewform?usp=dialog"
     
     list_items = ""
     for item in subsidies:
-        summary = ai_summarize(item['title'])
+        summary, score = ai_analyze(item['title'])
         list_items += f"""
         <article style="border: 1px solid #eee; padding: 25px; margin-bottom: 25px; border-radius: 15px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-            <h2 style="color: #1a73e8; margin-top: 0; font-size: 1.3rem; line-height: 1.4;">{item['title']}</h2>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h2 style="color: #1a73e8; margin-top: 0; font-size: 1.2rem; line-height: 1.4; flex: 1;">{item['title']}</h2>
+                <span style="background: #fff3e0; color: #e65100; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; margin-left: 10px;">おすすめ：{score}</span>
+            </div>
             <div style="background: #fff9f9; border: 1px solid #ffebee; padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 0.95rem; line-height: 1.8;">
-                <strong style="color: #d93025;">▼ AIによる3秒要約（返済不要情報など）</strong><br>
+                <strong style="color: #d93025;">▼ AI解析：返済不要情報など</strong><br>
                 {summary}
             </div>
             <div style="display: flex; gap: 10px;">
-                <a href="{item['link']}" target="_blank" style="flex: 1; text-align: center; border: 1px solid #dadce0; padding: 12px; text-decoration: none; border-radius: 8px; color: #3c4043; font-weight: bold; font-size: 0.9rem;">公式資料を見る</a>
-                <a href="{google_form_url}" target="_blank" style="flex: 1; text-align: center; background: #1a73e8; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.9rem;">プロに無料相談</a>
+                <a href="{item['link']}" target="_blank" style="flex: 1; text-align: center; border: 1px solid #dadce0; padding: 12px; text-decoration: none; border-radius: 8px; color: #3c4043; font-weight: bold; font-size: 0.8rem;">公式資料</a>
+                <a href="{google_form_url}" target="_blank" style="flex: 1; text-align: center; background: #1a73e8; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 0.8rem;">プロに無料相談</a>
             </div>
         </article>
         """
@@ -54,18 +59,17 @@ def generate_html_and_sitemap(subsidies):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="google-site-verification" content="qDKunZB9hZN753KuLftIbJUXeWBi3bA-HfSS-gej1KA" />
-        <title>AI補助金要約ナビ | 返済不要の最新支援情報</title>
-        <meta name="description" content="全国の補助金をAIが即座に要約。返済不要な資金調達情報を最短3秒で把握できます。">
+        <title>AI補助金要約ナビ | 2026年最新版</title>
+        <meta name="description" content="AIが補助金を即座に解析しおすすめ度を判定。返済不要な資金調達情報を最短3秒で把握。">
     </head>
     <body style="max-width: 600px; margin: 0 auto; background: #f1f3f4; padding: 20px; font-family: sans-serif; color: #202124;">
         <header style="text-align: center; padding: 30px 0;">
-            <h1 style="font-size: 1.8rem; margin-bottom: 5px;">AI補助金要約ナビ</h1>
+            <h1 style="font-size: 1.7rem; margin-bottom: 5px;">AI補助金要約ナビ</h1>
             <p style="color: #5f6368; font-size: 0.9rem;">最終更新：{now}</p>
         </header>
-        <main>{list_items}</main>
+        <main>{list_items if list_items else "<p style='text-align:center;'>現在、新規の補助金情報はありません。明日再度ご確認ください。</p>"}</main>
         <footer style="text-align: center; margin-top: 50px; color: #70757a; font-size: 0.8rem;">
-            &copy; 2026 AI Subsidy Navigation.<br>
-            AI要約の正確性は保証されません。必ず公式資料をご確認ください。
+            &copy; 2026 AI Subsidy Navigation.<br>AI解析は補助金受給を保証するものではありません。
         </footer>
     </body>
     </html>
@@ -73,28 +77,31 @@ def generate_html_and_sitemap(subsidies):
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    # SEO対策：サイトマップの自動生成
     sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-        <url>
-            <loc>https://kentaro140612-max.github.io/subsidy-checker/</loc>
-            <lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod>
-            <priority>1.0</priority>
-        </url>
+        <url><loc>https://kentaro140612-max.github.io/subsidy-checker/</loc><lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod><priority>1.0</priority></url>
     </urlset>"""
     with open("sitemap.xml", "w", encoding="utf-8") as f:
         f.write(sitemap_content)
 
 def fetch_data():
-    res = requests.get("https://j-net21.smrj.go.jp/snavi/articles", timeout=30)
+    url = "https://j-net21.smrj.go.jp/snavi/articles"
+    res = requests.get(url, timeout=30)
+    res.encoding = res.apparent_encoding
     soup = BeautifulSoup(res.text, 'html.parser')
-    articles = soup.select('h3')[:10]
-    return [{"title": a.get_text(strip=True), "link": "https://j-net21.smrj.go.jp" + a.find('a')['href']} for a in articles if a.find('a')]
+    
+    # セレクタの堅牢化：h3内のaタグを確実に取得
+    articles = soup.find_all('h3')[:8]
+    data = []
+    for art in articles:
+        link_tag = art.find('a')
+        if link_tag and link_tag.get('href'):
+            data.append({
+                "title": art.get_text(strip=True),
+                "link": "https://j-net21.smrj.go.jp" + link_tag['href']
+            })
+    return data
 
 if __name__ == "__main__":
     try:
         data = fetch_data()
-        generate_html_and_sitemap(data)
-        print("Success: Automated assets updated.")
-    except Exception as e:
-        print(f"Process Error: {{e}}")
