@@ -56,7 +56,20 @@ def fetch_data():
     return [{"title": a.get_text(strip=True), "link": "https://j-net21.smrj.go.jp" + a.find('a')['href']} for a in articles if a.find('a')]
 
 if __name__ == "__main__":
-    subsidies = fetch_data()
-    if subsidies:
-        generate_html_and_sitemap(subsidies)
-        print(f"Success: {len(subsidies)} articles updated.")
+    try:
+        subsidies = fetch_data()
+        print(f"DEBUG: Scraped {len(subsidies)} articles from J-Net21.")
+        
+        if subsidies and len(subsidies) > 0:
+            generate_html_and_sitemap(subsidies)
+            # 書き出し後のファイル存在確認
+            if os.path.exists("index.html"):
+                size = os.path.getsize("index.html")
+                print(f"Success: index.html generated ({size} bytes).")
+            else:
+                print("Error: index.html was NOT created.")
+        else:
+            print("Warning: No articles found. Scraping might have failed.")
+            
+    except Exception as e:
+        print(f"Critical Error: {e}")
