@@ -3,12 +3,17 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '0 0 * * *' # 毎日AM9時(JST)
+    - cron: '0 0 * * *'
 
-# 渋滞を物理的に解消する設定
+# 権限の物理的定義（これが不足していたためエラーが発生）
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 concurrency:
   group: "pages"
-  cancel-in-progress: true 
+  cancel-in-progress: true
 
 jobs:
   build:
