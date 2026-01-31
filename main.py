@@ -12,6 +12,7 @@ now = now_dt.strftime('%Y年%m月%d日 %H:%M')
 sitemap_date = now_dt.strftime('%Y-%m-%d')
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
+# 物理ディレクトリ作成
 os.makedirs("articles", exist_ok=True)
 
 def ai_analyze(title):
@@ -36,7 +37,7 @@ def ai_analyze(title):
         amount = res_text.split("金額：")[1].split("スコア：")[0].strip()
         score = res_text.split("スコア：")[1].strip()
         return cat, summary, amount, score
-    except:
+    except Exception:
         return "その他", "公式資料を確認してください。", "要確認", "★★★"
 
 def generate_individual_page(item, cat, summary, amount, score, file_id):
@@ -52,7 +53,7 @@ def generate_individual_page(item, cat, summary, amount, score, file_id):
         <p style="margin:10px 0 0 0; color:#555;">おすすめ度：{score}</p>
     </div>
     <p>{summary}</p>
-    <div style="margin-top:30px;"><a href="{item['link']}" target="_blank" style="display:block; text-align:center; background:#1a73e8; color:#fff; padding:15px; text-decoration:none; border-radius:8px; font-weight:bold;">公式資料を確認する</a></div>
+    <div style="margin-top:30px;"><a href="{item['link']}" target="_blank" style="display:block; text-align:center; background:#1a73e8; color:#fff; padding:15px; text-decoration:none; border-radius:8px; font-weight:bold;">公式資料を確認する（外部）</a></div>
 </body></html>"""
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(html)
@@ -63,6 +64,7 @@ def generate_html(subsidies):
     article_urls = []
     for i, item in enumerate(subsidies):
         cat, summary, amount, score = ai_analyze(item['title'])
+        # 衝突を避けるハッシュ値URL
         file_id = hashlib.md5(item['title'].encode()).hexdigest()[:12] + f"_{i}"
         page_path = generate_individual_page(item, cat, summary, amount, score, file_id)
         article_urls.append(page_path)
@@ -73,7 +75,7 @@ def generate_html(subsidies):
             <h2 style="font-size:1rem; margin:0 0 10px 0; color:#202124;">{item['title']}</h2>
             <p style="font-size:0.85rem; color:#5f6368; margin-bottom:15px;">{summary}</p>
             <div style="display:flex; gap:10px;">
-                <a href="{page_path}" style="flex:1; text-align:center; border:1px solid #1a73e8; color:#1a73e8; padding:8px; text-decoration:none; border-radius:6px; font-size:0.8rem;">詳細（開く）</a>
+                <a href="{page_path}" style="flex:1; text-align:center; border:1px solid #1a73e8; color:#1a73e8; padding:8px; text-decoration:none; border-radius:6px; font-size:0.8rem;">詳細を見る</a>
                 <a href="{item['link']}" target="_blank" style="flex:1; text-align:center; background:#1a73e8; color:#fff; padding:8px; text-decoration:none; border-radius:6px; font-size:0.8rem;">公式資料</a>
             </div>
         </article>"""
@@ -89,7 +91,7 @@ def generate_html(subsidies):
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
     
-    # サイトマップ生成（修正版）
+    # Sitemap生成
     base_url = "https://smart-guidance-lab.github.io/hojokin-navi/"
     s_lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     s_lines.append(f'  <url><loc>{base_url}index.html</loc><lastmod>{sitemap_date}</lastmod><priority>1.0</priority></url>')
